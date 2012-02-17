@@ -29,6 +29,8 @@
  *
  *
  */
+#define KGSL_VERSION_MAJOR        3
+#define KGSL_VERSION_MINOR        2
 
 #ifndef _GSL_DRIVER_H
 #define _GSL_DRIVER_H

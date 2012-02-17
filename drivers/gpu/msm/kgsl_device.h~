@@ -172,7 +172,6 @@ struct kgsl_device {
 
 	wait_queue_head_t wait_queue;
 	struct workqueue_struct *work_queue;
-	struct device *parentdev;
 	struct platform_device *pdev;
 	struct completion recovery_gate;
 	struct dentry *d_debugfs;

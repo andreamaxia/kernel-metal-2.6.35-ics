@@ -550,7 +550,7 @@ void kgsl_pwrctrl_irq(struct kgsl_device *device, unsigned int pwrflag)
 	}
 }
 
-/*int kgsl_pwrctrl_init(struct kgsl_device *device)
+int kgsl_pwrctrl_init(struct kgsl_device *device)
 {
 	int i, result = 0;
 	struct clk *clk = NULL;
@@ -564,7 +564,7 @@ void kgsl_pwrctrl_irq(struct kgsl_device *device, unsigned int pwrflag)
 						pdata_dev->imem_clk_name.clk,
 						pdata_dev->imem_clk_name.pclk};
 
-	*acquire clocks *
+	/*acquire clocks */
 	for (i = 1; i < KGSL_MAX_CLKS; i++) {
 		if (clk_names[i]) {
 			clk = clk_get(&pdev->dev, clk_names[i]);
@@ -573,11 +573,11 @@ void kgsl_pwrctrl_irq(struct kgsl_device *device, unsigned int pwrflag)
 			pwr->grp_clks[i] = clk;
 		}
 	}
-	* Make sure we have a source clk for freq setting *
+	/* Make sure we have a source clk for freq setting */
 	clk = clk_get(&pdev->dev, clk_names[0]);
 	pwr->grp_clks[0] = (IS_ERR(clk)) ? pwr->grp_clks[1] : clk;
 
-	* put the AXI bus into asynchronous mode with the graphics cores *
+	/* put the AXI bus into asynchronous mode with the graphics cores */
 	if (pdata_pwr->set_grp_async != NULL)
 		pdata_pwr->set_grp_async();
 
@@ -600,7 +600,7 @@ void kgsl_pwrctrl_irq(struct kgsl_device *device, unsigned int pwrflag)
 		pwr->pwrlevels[i].io_fraction =
 			pdata_pwr->pwrlevel[i].io_fraction;
 	}
-	* Do not set_rate for targets in sync with AXI *
+	/* Do not set_rate for targets in sync with AXI */
 	if (pwr->pwrlevels[0].gpu_freq > 0)
 		clk_set_rate(pwr->grp_clks[0], pwr->
 				pwrlevels[pwr->num_pwrlevels - 1].gpu_freq);
@@ -632,7 +632,7 @@ void kgsl_pwrctrl_irq(struct kgsl_device *device, unsigned int pwrflag)
 	pm_qos_add_requirement(PM_QOS_SYSTEM_BUS_FREQ, "kgsl_3d",
 				PM_QOS_DEFAULT_VALUE);
 
-	*acquire interrupt *
+	/*acquire interrupt */
 	pwr->interrupt_num =
 		platform_get_irq_byname(pdev, pwr->irq_name);
 
@@ -654,7 +654,7 @@ clk_err:
 done:
 	return result;
 }
-*/
+
 void kgsl_pwrctrl_close(struct kgsl_device *device)
 {
 	struct kgsl_pwrctrl *pwr = &device->pwrctrl;

@@ -5291,6 +5291,9 @@ static struct kgsl_platform_data kgsl_pdata = {
 	.min_grp3d_freq = 192 * 1000*1000,
 	.set_grp3d_async = set_grp3d_async,
 	.imem_clk_name = "imem_clk",
+//	.clk.name.clk = "imem_clk",
+//	.imem_clk_name.pclk = "imem_pclk",
+//	.clk.name.pclk = "imem_pclk",	
 	.grp3d_clk_name = "grp_clk",
 	.grp3d_pclk_name = "grp_pclk",
 #ifdef CONFIG_MSM_KGSL_2D

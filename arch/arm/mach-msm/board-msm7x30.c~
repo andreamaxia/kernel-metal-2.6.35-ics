@@ -5274,23 +5274,26 @@ static struct platform_device android_pmem_audio_device = {
        .dev = { .platform_data = &android_pmem_audio_pdata },
 };
 
-//static struct kgsl_platform_data kgsl_pdata = {
-//#ifdef CONFIG_MSM_NPA_SYSTEM_BUS
+static struct kgsl_platform_data kgsl_pdata = {
+#ifdef CONFIG_MSM_NPA_SYSTEM_BUS
 	/* NPA Flow IDs */
-/*	.high_axi_3d = MSM_AXI_FLOW_3D_GPU_HIGH,
+	.high_axi_3d = MSM_AXI_FLOW_3D_GPU_HIGH,
 	.high_axi_2d = MSM_AXI_FLOW_2D_GPU_HIGH,
-#else*/
+#else
 	/* AXI rates in KHz */
-/*	.high_axi_3d = 192000,
+	.high_axi_3d = 192000,
 	.high_axi_2d = 192000,
 #endif
 	.max_grp2d_freq = 0,
 	.min_grp2d_freq = 0,
-	.set_grp2d_async = NULL, HW workaround, run Z180 SYNC @ 192 MHZ 
+	.set_grp2d_async = NULL, /* HW workaround, run Z180 SYNC @ 192 MHZ */
 	.max_grp3d_freq = 245760000,
 	.min_grp3d_freq = 192 * 1000*1000,
 	.set_grp3d_async = set_grp3d_async,
-	.imem_clk_name = "imem_clk",
+	.imem_clk_name.clk = "imem_clk",
+	.clk.name.clk = "imem_clk",
+	.imem_clk_name.pclk = "imem_pclk",
+	.clk.name.pclk = "imem_pclk",	
 	.grp3d_clk_name = "grp_clk",
 	.grp3d_pclk_name = "grp_pclk",
 #ifdef CONFIG_MSM_KGSL_2D
@@ -5305,19 +5308,19 @@ static struct platform_device android_pmem_audio_device = {
 
 #ifdef CONFIG_KGSL_PER_PROCESS_PAGE_TABLE
 	.pt_va_size = SZ_32M,
-	 Maximum of 32 concurrent processes 
+	/* Maximum of 32 concurrent processes */
 	.pt_max_count = 32,
 #else
 	.pt_va_size = SZ_128M,
-	 We only ever have one pagetable for everybody 
+	/* We only ever have one pagetable for everybody */
 	.pt_max_count = 1,
 #endif
-};*/
+};
 
-/*static struct resource kgsl_resources[] = {
+static struct resource kgsl_resources[] = {
 	{
 		.name = "kgsl_reg_memory",
-		.start = 0xA3500000,  3D GRP address
+		.start = 0xA3500000, /* 3D GRP address */
 		.end = 0xA351ffff,
 		.flags = IORESOURCE_MEM,
 	},
@@ -5329,7 +5332,7 @@ static struct platform_device android_pmem_audio_device = {
 	},
 	{
 		.name = "kgsl_2d0_reg_memory",
-		.start = 0xA3900000,  Z180 base address 
+		.start = 0xA3900000, /* Z180 base address */
 		.end = 0xA3900FFF,
 		.flags = IORESOURCE_MEM,
 	},
@@ -5339,9 +5342,9 @@ static struct platform_device android_pmem_audio_device = {
 		.end = INT_GRP_2D,
 		.flags = IORESOURCE_IRQ,
 	},
-};*/
+};
 
-/*static struct platform_device msm_device_kgsl = {
+static struct platform_device msm_device_kgsl = {
 	.name = "kgsl",
 	.id = -1,
 	.num_resources = ARRAY_SIZE(kgsl_resources),
@@ -5349,7 +5352,7 @@ static struct platform_device android_pmem_audio_device = {
 	.dev = {
 		.platform_data = &kgsl_pdata,
 	},
-};*/
+};
 
 #if defined(CONFIG_CRYPTO_DEV_QCRYPTO) || \
 		defined(CONFIG_CRYPTO_DEV_QCRYPTO_MODULE) || \
@@ -7026,7 +7029,7 @@ static struct platform_device *devices[] __initdata = {
    (defined(CONFIG_MSM_BT_POWER) || defined(CONFIG_MSM_BT_POWER_MODULE))
 	&msm_bt_power_device,
 #endif
-	//&msm_device_kgsl,
+	&msm_device_kgsl,
 #ifdef CONFIG_MT9T013
 	&msm_camera_sensor_mt9t013,
 #endif
