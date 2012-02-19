@@ -25,15 +25,9 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *
- *
- *
  */
-
 #ifndef _GSL_DRIVER_H
 #define _GSL_DRIVER_H
-
-
 
 #include <linux/types.h>
 #include <linux/msm_kgsl.h>
@@ -268,7 +262,5 @@ static inline bool timestamp_cmp(unsigned int new, unsigned int old)
 	int ts_diff = new - old;
 	return (ts_diff >= 0) || (ts_diff < -20000);
 }
-
-
 
 #endif /* _GSL_DRIVER_H */

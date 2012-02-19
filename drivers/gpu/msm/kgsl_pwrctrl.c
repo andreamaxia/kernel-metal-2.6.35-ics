@@ -20,6 +20,7 @@
 #include <linux/kernel.h>
 #include <mach/clk.h>
 #include <mach/dal_axi.h>
+#include <mach/msm_bus.h>
 #include <mach/msm_iomap.h>
 
 #include "kgsl.h"
@@ -86,13 +87,14 @@ void kgsl_pwrctrl_pwrlevel_change(struct kgsl_device *device,
 					pwr->pwrlevels[pwr->active_pwrlevel].
 					gpu_freq);
 		if (pwr->power_flags & KGSL_PWRFLAGS_AXI_ON) {
-			if (pwr->ebi1_clk)
+			if (pwr->pcl)
+				msm_bus_scale_client_update_request(pwr->pcl,
+					pwr->pwrlevels[pwr->active_pwrlevel].
+					bus_freq);
+			else if (pwr->ebi1_clk)
 				clk_set_rate(pwr->ebi1_clk,
 					pwr->pwrlevels[pwr->active_pwrlevel].
 					bus_freq);
-		pm_qos_update_requirement(PM_QOS_SYSTEM_BUS_FREQ,
-			"kgsl_3d", pwr->pwrlevels[pwr->active_pwrlevel].
-			bus_freq);
 		}
 		KGSL_PWR_WARN(device, "pwr level changed to %d\n",
 					  pwr->active_pwrlevel);
@@ -448,8 +450,9 @@ void kgsl_pwrctrl_axi(struct kgsl_device *device, unsigned int pwrflag)
 				"axi off, device %d\n", device->id);
 			if (pwr->ebi1_clk)
 				clk_disable(pwr->ebi1_clk);
-			pm_qos_update_requirement(PM_QOS_SYSTEM_BUS_FREQ,
-				"kgsl_3d", PM_QOS_DEFAULT_VALUE);
+			if (pwr->pcl)
+				msm_bus_scale_client_update_request(pwr->pcl,
+								    0);
 			pwr->power_flags &=
 				~(KGSL_PWRFLAGS_AXI_ON);
 			pwr->power_flags |= KGSL_PWRFLAGS_AXI_OFF;
@@ -459,11 +462,12 @@ void kgsl_pwrctrl_axi(struct kgsl_device *device, unsigned int pwrflag)
 		if (pwr->power_flags & KGSL_PWRFLAGS_AXI_OFF) {
 			KGSL_PWR_INFO(device,
 				"axi on, device %d\n", device->id);
-			pm_qos_update_requirement(PM_QOS_SYSTEM_BUS_FREQ,
-				"kgsl_3d", pwr->pwrlevels[pwr->active_pwrlevel].
-				bus_freq);
 			if (pwr->ebi1_clk)
 				clk_enable(pwr->ebi1_clk);
+			if (pwr->pcl)
+				msm_bus_scale_client_update_request(pwr->pcl,
+					pwr->pwrlevels[pwr->active_pwrlevel].
+						bus_freq);
 			pwr->power_flags &=
 				~(KGSL_PWRFLAGS_AXI_OFF);
 			pwr->power_flags |= KGSL_PWRFLAGS_AXI_ON;
@@ -550,10 +554,10 @@ void kgsl_pwrctrl_irq(struct kgsl_device *device, unsigned int pwrflag)
 	}
 }
 
-/*int kgsl_pwrctrl_init(struct kgsl_device *device)
+int kgsl_pwrctrl_init(struct kgsl_device *device)
 {
 	int i, result = 0;
-	struct clk *clk = NULL;
+	struct clk *clk;
 	struct platform_device *pdev = device->pdev;
 	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
 	struct kgsl_device_platform_data *pdata_dev = pdev->dev.platform_data;
@@ -564,7 +568,7 @@ void kgsl_pwrctrl_irq(struct kgsl_device *device, unsigned int pwrflag)
 						pdata_dev->imem_clk_name.clk,
 						pdata_dev->imem_clk_name.pclk};
 
-	*acquire clocks *
+	/*acquire clocks */
 	for (i = 1; i < KGSL_MAX_CLKS; i++) {
 		if (clk_names[i]) {
 			clk = clk_get(&pdev->dev, clk_names[i]);
@@ -573,11 +577,11 @@ void kgsl_pwrctrl_irq(struct kgsl_device *device, unsigned int pwrflag)
 			pwr->grp_clks[i] = clk;
 		}
 	}
-	* Make sure we have a source clk for freq setting *
+	/* Make sure we have a source clk for freq setting */
 	clk = clk_get(&pdev->dev, clk_names[0]);
 	pwr->grp_clks[0] = (IS_ERR(clk)) ? pwr->grp_clks[1] : clk;
 
-	* put the AXI bus into asynchronous mode with the graphics cores *
+	/* put the AXI bus into asynchronous mode with the graphics cores */
 	if (pdata_pwr->set_grp_async != NULL)
 		pdata_pwr->set_grp_async();
 
@@ -600,7 +604,7 @@ void kgsl_pwrctrl_irq(struct kgsl_device *device, unsigned int pwrflag)
 		pwr->pwrlevels[i].io_fraction =
 			pdata_pwr->pwrlevel[i].io_fraction;
 	}
-	* Do not set_rate for targets in sync with AXI *
+	/* Do not set_rate for targets in sync with AXI */
 	if (pwr->pwrlevels[0].gpu_freq > 0)
 		clk_set_rate(pwr->grp_clks[0], pwr->
 				pwrlevels[pwr->num_pwrlevels - 1].gpu_freq);
@@ -629,10 +633,21 @@ void kgsl_pwrctrl_irq(struct kgsl_device *device, unsigned int pwrflag)
 		clk_set_rate(pwr->ebi1_clk,
 					 pwr->pwrlevels[pwr->active_pwrlevel].
 						bus_freq);
-	pm_qos_add_requirement(PM_QOS_SYSTEM_BUS_FREQ, "kgsl_3d",
-				PM_QOS_DEFAULT_VALUE);
+	if (pdata_dev->clk.bus_scale_table != NULL) {
+		pwr->pcl =
+			msm_bus_scale_register_client(pdata_dev->clk.
+							bus_scale_table);
+		if (!pwr->pcl) {
+			KGSL_PWR_ERR(device,
+					"msm_bus_scale_register_client failed: "
+					"id %d table %p", device->id,
+					pdata_dev->clk.bus_scale_table);
+			result = -EINVAL;
+			goto done;
+		}
+	}
 
-	*acquire interrupt *
+	/*acquire interrupt */
 	pwr->interrupt_num =
 		platform_get_irq_byname(pdev, pwr->irq_name);
 
@@ -654,7 +669,7 @@ clk_err:
 done:
 	return result;
 }
-*/
+
 void kgsl_pwrctrl_close(struct kgsl_device *device)
 {
 	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
@@ -674,7 +689,8 @@ void kgsl_pwrctrl_close(struct kgsl_device *device)
 
 	clk_put(pwr->ebi1_clk);
 
-	pm_qos_remove_requirement(PM_QOS_SYSTEM_BUS_FREQ, "kgsl_3d");
+	if (pwr->pcl)
+		msm_bus_scale_unregister_client(pwr->pcl);
 
 	pwr->pcl = 0;
 
@@ -801,8 +817,6 @@ clk_off:
 	device->state = device->requested_state;
 	device->requested_state = KGSL_STATE_NONE;
 	wake_unlock(&device->idle_wakelock);
-	pm_qos_update_requirement(PM_QOS_CPU_DMA_LATENCY, "kgsl",
- 				PM_QOS_DEFAULT_VALUE);
 	KGSL_PWR_WARN(device, "state -> NAP/SLEEP(%d), device %d\n",
 				  device->state, device->id);
 

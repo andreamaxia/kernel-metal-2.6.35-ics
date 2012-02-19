@@ -39,6 +39,7 @@
 #include "kgsl.h"
 #include "kgsl_mmu.h"
 #include "kgsl_yamato.h"
+#include "kgsl_g12.h"
 #include "kgsl_cmdstream.h"
 #include "kgsl_postmortem.h"
 
@@ -349,26 +350,25 @@ int kgsl_suspend_device(struct kgsl_device *device, pm_message_t state)
 	device->pwrctrl.nap_allowed = false;
 	idle_pass_saved = device->pwrctrl.idle_pass;
 	device->pwrctrl.idle_pass = false;
-//	device->requested_state = KGSL_STATE_SUSPEND;
-	// Make sure no user process is waiting for a timestamp
-	// before supending 
+	device->requested_state = KGSL_STATE_SUSPEND;
+	/* Make sure no user process is waiting for a timestamp *
+	 * before supending */
 	if (device->active_cnt != 0) {
 		mutex_unlock(&device->mutex);
 		wait_for_completion(&device->suspend_gate);
 		mutex_lock(&device->mutex);
 	}
-	// Don't let the timer wake us during suspended sleep.
+	/* Don't let the timer wake us during suspended sleep. */
 	del_timer(&device->idle_timer);
 	switch (device->state) {
 		case KGSL_STATE_INIT:
 			break;
 		case KGSL_STATE_ACTIVE:
-			// Wait for the device to become idle 
+			/* Wait for the device to become idle */
 			device->ftbl.device_idle(device, KGSL_TIMEOUT_DEFAULT);
 		case KGSL_STATE_NAP:
 		case KGSL_STATE_SLEEP:
-			goto end;
-			// Get the completion ready to be waited upon.
+			/* Get the completion ready to be waited upon. */
 			INIT_COMPLETION(device->hwaccess_gate);
 			device->ftbl.device_suspend_context(device);
 			device->ftbl.device_stop(device);

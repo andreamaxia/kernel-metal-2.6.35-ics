@@ -25,6 +25,7 @@
 #include <linux/notifier.h>
 #include <linux/pm_runtime.h>
 
+#include <mach/msm_bus.h>
 #include <linux/vmalloc.h>
 
 #include "kgsl.h"
